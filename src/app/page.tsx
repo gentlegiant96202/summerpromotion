@@ -25,6 +25,12 @@ export default function Home() {
   });
   const [isSpinning, setIsSpinning] = useState(false);
 
+  // Track if this user has already spun to disable further spins
+  const [hasSpun, setHasSpun] = useState(false);
+
+  // Error message if this mobile has already spun
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+
   const [showWheel, setShowWheel] = useState(false);
   const [selectedPrize, setSelectedPrize] = useState<{ id: number; name: string; color: string } | null>(null);
   const [showCongratulations, setShowCongratulations] = useState(false);
@@ -32,12 +38,60 @@ export default function Home() {
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // ---------- FAKE LEADERBOARD DATA ----------
+  const FAKE_NAMES = [
+    'JACK WATSON', 'EMMA BROWN', 'OLIVER JONES', 'AVA TAYLOR', 'LUCAS CLARK',
+    'MIA HARRIS', 'LIAM WILSON', 'SOPHIA MARTIN', 'NOAH THOMPSON', 'ISLA MOORE',
+    'ELIJAH WHITE', 'GRACE HALL', 'HARPER ALLEN', 'HENRY YOUNG', 'ELLA KING',
+    'JAMES WRIGHT', 'SCARLETT SCOTT', 'LEO GREEN', 'CHLOE ADAMS', 'AIDEN BAKER',
+    'LILY NELSON', 'MASON CARTER', 'SOPHIE MITCHELL', 'ETHAN ROBERTS', 'ZOE TURNER',
+    'ARCHIE PHILLIPS', 'RUBY CAMPBELL', 'JOSHUA PARKER', 'FREYA EVANS', 'LOGAN COLLINS',
+    // Arabic names
+    'AHMED ALI', 'FATIMA KHAN', 'MOHAMMED HASSAN', 'LAILA ABDULLAH', 'OMAR SAEED',
+    // Indian names
+    'RAHUL SHARMA', 'PRIYA PATEL', 'ARJUN SINGH', 'ANITA KUMAR', 'VIKRAM DAS',
+  ];
+  const FAKE_PRIZES = [
+    'AED 500 PREPAID GIFT CARD',
+    'AED 750 PREPAID GIFT CARD',
+    'AED 1000 PREPAID GIFT CARD',
+  ];
+
+  const [fakeEntries, setFakeEntries] = useState<LeaderboardEntry[]>([]);
+
+  useEffect(() => {
+    const generateFakeEntry = () => {
+      const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
+      const prize = FAKE_PRIZES[Math.floor(Math.random() * FAKE_PRIZES.length)];
+      const newEntry: LeaderboardEntry = {
+        id: 'fake-' + Date.now(),
+        name,
+        selected_prize: prize,
+        entry_date: new Date().toISOString(),
+      };
+      setFakeEntries(prev => {
+        const updated = [newEntry, ...prev];
+        return updated.slice(0, 15);
+      });
+    };
+
+    const first = setTimeout(generateFakeEntry, 5000);
+    const interval = setInterval(generateFakeEntry, 30000 + Math.random() * 30000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const combinedEntries = [...fakeEntries, ...recentWinners].sort(
+    (a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()
+  );
+
   const prizes = [
-    { id: 1, name: '4 YEARS PREMIUM SERVICECARE', color: '#D85050', probability: 0.25 },
-    { id: 2, name: '1000 AED SERVICE GIFT CARD', color: '#D85050', probability: 0.30 },
-    { id: 3, name: 'FULL CERAMIC COATING', color: '#D85050', probability: 0.20 },
-    { id: 4, name: '2 YEARS STANDARD SERVICECARE', color: '#D85050', probability: 0.20 },
-    { id: 5, name: 'MALL OF EMIRATES GIFT CARD OF AED 3,500', color: '#D85050', probability: 0.05 }
+    { id: 1, name: 'AED 1000 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
+    { id: 2, name: 'AED 750 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
+    { id: 3, name: 'AED 500 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
+    { id: 4, name: 'AED 250 PREPAID GIFT CARD', color: '#D85050', probability: 1 }
   ];
 
   // Fetch leaderboard data
@@ -128,39 +182,71 @@ export default function Home() {
 
   // Save entry to database
   const saveEntryToDatabase = async (prize: { id: number; name: string; color: string; probability: number }) => {
+    const supabase = createClient();
+    
     try {
-      const supabase = createClient();
+      const clientIP = await getClientIP();
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('wheel_entries')
         .insert([
           {
-            name: submittedFormData.name,
+            name: submittedFormData.name.toUpperCase(),
             mobile: submittedFormData.countryCode + submittedFormData.mobile,
             selected_prize: prize.name,
             prize_id: prize.id,
-            entry_date: new Date().toISOString(),
-            ip_address: await getClientIP()
+            ip_address: clientIP,
+            entry_date: new Date().toISOString()
           }
-        ])
-        .select();
+        ]);
 
       if (error) {
-        console.error('Error saving entry:', error);
+        console.error('Error saving to database:', error);
         throw error;
       }
 
-      console.log('Entry saved successfully:', data);
-      console.log('Entry details:', {
-        name: submittedFormData.name,
-        mobile: submittedFormData.countryCode + submittedFormData.mobile,
-        prize: prize.name,
-        prizeId: prize.id
-      });
-      return data;
+      console.log('Entry saved successfully');
     } catch (error) {
       console.error('Failed to save entry:', error);
       throw error;
+    }
+  };
+
+  const sendWebhook = async (winnerData: {
+    name: string;
+    mobile: string;
+    prize: string;
+    entryDate: string;
+  }) => {
+    try {
+      // Bothook.io webhook endpoint
+      const webhookUrl = 'https://bothook.io/v1/public/triggers/webhooks/ad29e7ad-96a8-4710-83cc-6c2a3ec49564';
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: 'wheel_winner',
+          data: {
+            name: winnerData.name,
+            mobile: winnerData.mobile,
+            prize: winnerData.prize,
+            entry_date: winnerData.entryDate,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Webhook failed:', response.status, response.statusText);
+      } else {
+        console.log('Webhook sent successfully to Bothook.io');
+      }
+    } catch (error) {
+      console.error('Failed to send webhook:', error);
+      // Don't throw error - webhook failure shouldn't break the user experience
     }
   };
 
@@ -176,21 +262,47 @@ export default function Home() {
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form submitted:', formData);
-    
-    // Store the submitted form data before resetting
-    setSubmittedFormData(formData);
-    
-    setShowWheel(true);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      mobile: '',
-      countryCode: '+971'
-    });
+
+    const fullMobile = formData.countryCode + formData.mobile;
+    const supabase = createClient();
+
+    try {
+      // Check for existing mobile number
+      console.log('Checking for mobile:', fullMobile);
+      const { data: existingEntries, error: dupError } = await supabase
+        .from('wheel_entries')
+        .select('*')
+        .eq('mobile', fullMobile);
+
+      console.log('Query result:', { existingEntries, dupError });
+
+      if (dupError) {
+        console.error('Duplicate check failed:', dupError);
+        setDuplicateError('Something went wrong. Please try again later.');
+        return;
+      }
+
+      if (existingEntries && existingEntries.length > 0) {
+        console.log('Duplicate found:', existingEntries);
+        setDuplicateError('You have already entered and won a Prepaid Gift Card. Thank you!');
+        return;
+      }
+
+      console.log('No duplicate found, proceeding...');
+      // No duplicate – proceed
+      setDuplicateError(null);
+      setSubmittedFormData(formData);
+      setShowWheel(true);
+
+      // Reset form
+      setFormData({ name: '', mobile: '', countryCode: '+971' });
+    } catch (error) {
+      console.error('Unexpected error in form submit:', error);
+      setDuplicateError('Something went wrong. Please try again later.');
+    }
   };
 
   const handleSpinStart = () => {
@@ -207,6 +319,7 @@ export default function Home() {
 
   const handleSpinComplete = async (prize: { id: number; name: string; color: string; probability: number }) => {
     console.log('Spin complete, prize:', prize);
+    setHasSpun(true);
     
     // Add haptic feedback for mobile
     if ('vibrate' in navigator) {
@@ -216,19 +329,17 @@ export default function Home() {
     setSelectedPrize(prize);
     setIsSpinning(false);
     
-    // Hide golden particles after animation
-    setTimeout(() => {
-      // setShowGoldenParticles(false); // This state variable was removed
-    }, 3000);
-    
-    // Show modal after a short delay
-    setTimeout(() => {
-      setShowCongratulations(true);
-    }, 2000);
-    
     try {
       // Save to database
       await saveEntryToDatabase(prize);
+      
+      // Send webhook with winner data
+      await sendWebhook({
+        name: submittedFormData.name.toUpperCase(),
+        mobile: submittedFormData.countryCode + submittedFormData.mobile,
+        prize: prize.name,
+        entryDate: new Date().toISOString()
+      });
       
       // Play win sound
       playWinSound();
@@ -566,6 +677,12 @@ export default function Home() {
                           <p className="text-sm text-gray-300 mt-2">We&apos;ll contact you if you win!</p>
                         </div>
                         
+                        {duplicateError && (
+                          <div className="mb-2 text-red-400 text-sm font-semibold">
+                            {duplicateError}
+                          </div>
+                        )}
+
                         <button
                           type="submit"
                           className="w-full bg-white text-black font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:bg-gray-200 text-xl"
@@ -609,13 +726,13 @@ export default function Home() {
                           <div className="p-3 text-center">
                             <div className="text-white/60 text-sm">Loading...</div>
                           </div>
-                        ) : recentWinners.length === 0 ? (
+                        ) : combinedEntries.length === 0 ? (
                           <div className="p-3 text-center">
                             <div className="text-white/60 text-sm">No entries yet</div>
                           </div>
                         ) : (
                           <div className="divide-y divide-white/10">
-                            {recentWinners.map((entry, index) => (
+                            {combinedEntries.map((entry, index) => (
                               <div key={entry.id} className="p-2 hover:bg-white/5 transition-colors">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2">
@@ -671,7 +788,7 @@ export default function Home() {
                           isSpinning={isSpinning}
                           onSpinComplete={handleSpinComplete}
                           onSpinStart={handleSpinStart}
-                          disabled={false}
+                          disabled={hasSpun}
                         />
                       </div>
                       
@@ -699,13 +816,13 @@ export default function Home() {
                             <div className="p-3 text-center">
                               <div className="text-white/60 text-sm">Loading...</div>
                             </div>
-                          ) : recentWinners.length === 0 ? (
+                          ) : combinedEntries.length === 0 ? (
                             <div className="p-3 text-center">
                               <div className="text-white/60 text-sm">No entries yet</div>
                             </div>
                           ) : (
                             <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
-                              {recentWinners.map((entry, index) => (
+                              {combinedEntries.map((entry, index) => (
                                 <div key={entry.id} className="p-2 hover:bg-white/5 transition-colors">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">

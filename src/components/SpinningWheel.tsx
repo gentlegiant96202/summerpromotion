@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from "react";
 
 interface Prize {
   id: number;
@@ -10,48 +10,124 @@ interface Prize {
 }
 
 interface SpinningWheelProps {
-  prizes: Prize[];
+  prizes: Prize[]; // Must contain exactly 4 prizes (1000, 750, 500, 250) with ids 1-4
   onSpinComplete: (prize: Prize) => void;
   isSpinning: boolean;
   onSpinStart: () => void;
   disabled?: boolean;
 }
 
-export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSpinStart, disabled = false }: SpinningWheelProps) {
+/*****************************************************************************************
+ * CONFIGURATION                                                                           *
+ *****************************************************************************************/
+
+// Wheel always has 10 equally-sized slices (36° each)
+const SLICE_COUNT = 10;
+const SLICE_DEG = 360 / SLICE_COUNT; // 36°
+const TEXT_ROTATION_OFFSET = 18; // Text sits at the centre of the slice
+// Fine-tune where the wheel stops so the pointer sits deeper inside the slice
+const STOP_TWEAK_DEG = 9; // positive = wheel stops earlier (counter-clockwise)
+
+// Pointer visual orientation in gradient degrees (0° = right, 90° = down)
+const POINTER_DEG = 90; // Pointer arrow points straight downwards
+// Hard-coded slice order – prize ids as defined in the parent component                    
+// Index 0   1  2  3  4  5  6  7  8  9
+// Prize  1000 250 250 750 250 250 250 500 250 250
+const SLICE_PRIZE_IDS: number[] = [1, 4, 4, 2, 4, 4, 4, 3, 4, 4];
+
+// Human-readable labels for each slice (kept in sync with prize/order above)
+const SLICE_LABELS: string[][] = [
+  ["AED 1000", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 750", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 500", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+  ["AED 250", "PREPAID", "GIFT CARD"],
+];
+
+/*****************************************************************************************
+ * HELPER FUNCTIONS                                                                        *
+ *****************************************************************************************/
+
+// Returns the absolute wheel rotation (deg) required so that slice i lines up with pointer
+const angleForSlice = (sliceIndex: number): number => {
+  // Rotate wheel so that the chosen slice centre (offset by 18°) aligns with the pointer (90°)
+  return (
+    POINTER_DEG - (sliceIndex * SLICE_DEG + TEXT_ROTATION_OFFSET) + STOP_TWEAK_DEG + 360 * 2
+  ) % 360;
+};
+
+// Given a wheel rotation, work out which slice is under the pointer
+const sliceForAngle = (wheelAngle: number): number => {
+  // Convert wheel rotation into pointer angle (0° at top, clockwise positive)
+  const pointerAngle = (POINTER_DEG - wheelAngle + 360) % 360; // 0-359, with 0° at pointer
+  // Shift so that slice centres start at 0° then divide by slice size
+  const shifted = (pointerAngle + 360 - TEXT_ROTATION_OFFSET - STOP_TWEAK_DEG) % 360;
+  return Math.floor(shifted / SLICE_DEG);
+};
+
+/*****************************************************************************************
+ * COMPONENT                                                                               *
+ *****************************************************************************************/
+
+export default function SpinningWheel({
+  prizes,
+  onSpinComplete,
+  isSpinning,
+  onSpinStart,
+  disabled = false,
+}: SpinningWheelProps) {
+  // Internal state tracks cumulative rotation
   const [angle, setAngle] = useState(0);
 
+  // Utility to map slice index -> Prize object
+  const prizeForSlice = (sliceIndex: number): Prize => {
+    const prizeId = SLICE_PRIZE_IDS[sliceIndex];
+    return (
+      prizes.find((p) => p.id === prizeId) ||
+      prizes[prizes.length - 1] // Fallback to last prize (should never happen)
+    );
+  };
+
   const spin = () => {
-    console.log('Spin button clicked!');
-    console.log('isSpinning:', isSpinning);
-    console.log('disabled:', disabled);
-    
-    if (isSpinning || disabled) {
-      console.log('Already spinning or disabled, returning early');
-      return;
-    }
-    
-    console.log('Starting spin...');
+    // Guard clauses
+    if (isSpinning || disabled) return;
+
+    // Inform parent that spinning has begun
     onSpinStart();
-    
-    const randomDeg = Math.floor(Math.random() * 360 + 720);
-    const newAngle = angle + randomDeg;
-    console.log('New angle:', newAngle);
-    setAngle(newAngle);
-    
-    // Calculate winning segment
-    const segmentAngle = 360 / 8; // 8 segments
-    const normalizedAngle = (360 - (newAngle % 360)) % 360;
-    const winningSegment = Math.floor(normalizedAngle / segmentAngle);
-    console.log('Winning segment:', winningSegment);
-    
+
+    /**************************************************************************
+     * 1. Pick the target slice                                                *
+     *    The business rule is to ALWAYS land on the FIRST AED 250 slice      *
+     **************************************************************************/
+    const targetSlice = 2; // Slightly further 250 slice so pointer sits deeper inside
+
+    // How far do we need to rotate from current orientation?                 
+    const currentOrientation = angle % 360; // 0-359
+    const targetOrientation = angleForSlice(targetSlice); // Absolute target angle
+    const delta = (targetOrientation - currentOrientation + 360) % 360; // 0-359
+
+    // Add 4-6 full rotations for effect
+    const fullRotations = 4 + Math.floor(Math.random() * 3); // 4, 5 or 6
+    const finalAngle = angle + fullRotations * 360 + delta;
+
+    // Apply rotation – CSS transition handles animation
+    setAngle(finalAngle);
+
+    // Fire callback after transition ends (4s matches CSS duration)
     setTimeout(() => {
-      console.log('Spin complete, calling onSpinComplete');
-      const selectedPrize = prizes[winningSegment] || prizes[0];
-      onSpinComplete(selectedPrize);
+      const landedSlice = sliceForAngle(finalAngle % 360);
+      onSpinComplete(prizeForSlice(landedSlice));
     }, 4000);
   };
 
-  console.log('Component render - isSpinning:', isSpinning);
+  /*****************************************************************************************
+   * RENDER                                                                                *
+   *****************************************************************************************/
 
   return (
     <>
@@ -63,16 +139,18 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           border: 12px solid #7c0c0c;
           position: relative;
           background: conic-gradient(
-            #e5e7eb 0deg 45deg,
-            #f1f5f9 45deg 90deg,
-            #e5e7eb 90deg 135deg,
-            #f1f5f9 135deg 180deg,
-            #e5e7eb 180deg 225deg,
-            #f1f5f9 225deg 270deg,
-            #e5e7eb 270deg 315deg,
-            #f1f5f9 315deg 360deg
+            #e5e7eb 0deg 36deg,
+            #f1f5f9 36deg 72deg,
+            #e5e7eb 72deg 108deg,
+            #f1f5f9 108deg 144deg,
+            #e5e7eb 144deg 180deg,
+            #f1f5f9 180deg 216deg,
+            #e5e7eb 216deg 252deg,
+            #f1f5f9 252deg 288deg,
+            #e5e7eb 288deg 324deg,
+            #f1f5f9 324deg 360deg
           );
-          box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px white;
+          box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px #ffffff;
           transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
         }
 
@@ -82,10 +160,12 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
 
         @keyframes pulseGlow {
           0%, 100% {
-            box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px white, 0 0 20px rgba(216, 80, 80, 0.3);
+            box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px #ffffff,
+              0 0 20px rgba(216, 80, 80, 0.3);
           }
           50% {
-            box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px white, 0 0 40px rgba(216, 80, 80, 0.6);
+            box-shadow: inset 0 0 0 2px #c0c0c0, inset 0 0 0 4px #ffffff,
+              0 0 40px rgba(216, 80, 80, 0.6);
           }
         }
 
@@ -93,8 +173,8 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           position: absolute;
           width: 100%;
           height: 100%;
-          left: 0%;
-          top: 0%;
+          left: 0;
+          top: 0;
           transform-origin: 50% 50%;
           display: flex;
           align-items: center;
@@ -106,7 +186,7 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           line-height: 1.3;
           color: #1f2937;
           transform: rotate(var(--angle)) translateY(-200px);
-          text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+          text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
         }
 
         .pointer {
@@ -115,10 +195,12 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           border-left: 15px solid transparent;
           border-right: 15px solid transparent;
           border-top: 25px solid #7c0c0c;
+          /* Arrow initially points up; rotate 180° to point down */
           position: absolute;
-          top: 0;
+          top: 8px;
           left: 50%;
-          transform: translateX(-50%) rotate(0deg);
+          transform: translateX(-50%);
+          transform-origin: 50% 80%;
           z-index: 20;
         }
 
@@ -135,46 +217,40 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           z-index: 1;
         }
 
+        /* Spin button styling */
         .spin-button {
           background: rgba(255, 255, 255, 0.1);
           backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.2);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           font-weight: 700;
           letter-spacing: 1px;
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
           position: relative;
-          overflow: hidden;
-        }
-
-        .spin-button::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-          transition: left 0.5s;
         }
 
         .spin-button:hover:not(:disabled) {
           background: rgba(255, 255, 255, 0.15);
           border-color: rgba(255, 255, 255, 0.3);
-          transform: translateY(-2px);
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
         }
 
-        .spin-button:hover:not(:disabled)::before {
-          left: 100%;
-        }
-
         .spin-button:active:not(:disabled) {
-          transform: translateY(0px);
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateY(1px);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
+        .spin-button:disabled {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.1);
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive tweaks */
         @media (max-width: 640px) {
           .wheel {
             width: 300px;
@@ -207,48 +283,50 @@ export default function SpinningWheel({ prizes, onSpinComplete, isSpinning, onSp
           }
         }
       `}</style>
-      
+
       <div className="relative">
-        <div className="pointer"></div>
-        <div 
-          id="wheel" 
-          className={`wheel ${isSpinning ? 'spinning' : ''}`}
+        {/* Pointer */}
+        <div className="pointer" />
+
+        {/* WHEEL */}
+        <div
+          className={`wheel ${isSpinning ? "spinning" : ""}`}
           style={{ transform: `rotate(${angle}deg)` }}
         >
-          <div className="inner-circle"></div>
-          <span style={{ '--angle': '22.5deg' } as React.CSSProperties}>
-            4 YEARS PREMIUM<br />SERVICECARE
-          </span>
-          <span style={{ '--angle': '67.5deg' } as React.CSSProperties}>
-            1000 AED<br />SERVICE GIFT CARD
-          </span>
-          <span style={{ '--angle': '112.5deg' } as React.CSSProperties}>
-            FULL<br />CERAMIC COATING
-          </span>
-          <span style={{ '--angle': '157.5deg' } as React.CSSProperties}>
-            2 YEARS STANDARD<br />SERVICECARE
-          </span>
-          <span style={{ '--angle': '202.5deg' } as React.CSSProperties}>
-            MALL OF EMIRATES<br />GIFT CARD AED 3,500
-          </span>
-          <span style={{ '--angle': '247.5deg' } as React.CSSProperties}>
-            4 YEARS PREMIUM<br />SERVICECARE
-          </span>
-          <span style={{ '--angle': '292.5deg' } as React.CSSProperties}>
-            1000 AED<br />SERVICE GIFT CARD
-          </span>
-          <span style={{ '--angle': '337.5deg' } as React.CSSProperties}>
-            FULL<br />CERAMIC COATING
-          </span>
+          <div className="inner-circle" />
+          {/* Render slice labels */}
+          {SLICE_PRIZE_IDS.map((prizeId, i) => (
+            <span
+              key={i}
+              style={{
+                "--angle": `${TEXT_ROTATION_OFFSET + i * SLICE_DEG}deg`,
+              } as React.CSSProperties}
+            >
+              {SLICE_LABELS[i].map((line, idx) => (
+                <React.Fragment key={idx}>
+                  {line}
+                  {idx < SLICE_LABELS[i].length - 1 && <br />}
+                </React.Fragment>
+              ))}
+            </span>
+          ))}
         </div>
+
+        {/* SPIN BUTTON */}
         <div className="flex justify-center mt-6">
-          <button 
-            onClick={spin} 
+          <button
+            onClick={spin}
             disabled={isSpinning || disabled}
-            className={`spin-button text-white font-bold py-3 px-8 rounded-lg text-lg ${(isSpinning || disabled) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ zIndex: 1000, fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}
+            className={`spin-button text-white font-bold py-3 px-8 rounded-lg text-lg ${
+              isSpinning || disabled ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            style={{
+              zIndex: 1000,
+              fontFamily: "Impact, sans-serif",
+              fontWeight: "normal",
+            }}
           >
-            {isSpinning ? 'SPINNING...' : disabled ? 'ALREADY WON!' : 'SPIN NOW!'}
+            {isSpinning ? "SPINNING..." : disabled ? "ALREADY WON!" : "SPIN NOW!"}
           </button>
         </div>
       </div>

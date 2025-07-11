@@ -3,6 +3,25 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '../lib/supabase';
 
+// ---------- FAKE LEADERBOARD DATA ----------
+const FAKE_NAMES = [
+  'JACK WATSON', 'EMMA BROWN', 'OLIVER JONES', 'AVA TAYLOR', 'LUCAS CLARK',
+  'MIA HARRIS', 'LIAM WILSON', 'SOPHIA MARTIN', 'NOAH THOMPSON', 'ISLA MOORE',
+  'ELIJAH WHITE', 'GRACE HALL', 'HARPER ALLEN', 'HENRY YOUNG', 'ELLA KING',
+  'JAMES WRIGHT', 'SCARLETT SCOTT', 'LEO GREEN', 'CHLOE ADAMS', 'AIDEN BAKER',
+  'LILY NELSON', 'MASON CARTER', 'SOPHIE MITCHELL', 'ETHAN ROBERTS', 'ZOE TURNER',
+  'ARCHIE PHILLIPS', 'RUBY CAMPBELL', 'JOSHUA PARKER', 'FREYA EVANS', 'LOGAN COLLINS',
+  // Arabic names
+  'AHMED ALI', 'FATIMA KHAN', 'MOHAMMED HASSAN', 'LAILA ABDULLAH', 'OMAR SAEED',
+  // Indian names
+  'RAHUL SHARMA', 'PRIYA PATEL', 'ARJUN SINGH', 'ANITA KUMAR', 'VIKRAM DAS',
+];
+const FAKE_PRIZES = [
+  'AED 500 PREPAID GIFT CARD',
+  'AED 750 PREPAID GIFT CARD',
+  'AED 1000 PREPAID GIFT CARD',
+];
+
 interface LeaderboardEntry {
   id: string;
   name: string;
@@ -14,6 +33,38 @@ export default function LiveLeaderboard() {
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
+  const [fakeEntries, setFakeEntries] = useState<LeaderboardEntry[]>([]);
+
+  // ------------------ FAKE ENTRY GENERATOR ------------------
+  useEffect(() => {
+    const generateFakeEntry = () => {
+      const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
+      const prize = FAKE_PRIZES[Math.floor(Math.random() * FAKE_PRIZES.length)];
+      const newEntry: LeaderboardEntry = {
+        id: 'fake-' + Date.now(),
+        name,
+        selected_prize: prize,
+        entry_date: new Date().toISOString(),
+      };
+
+      setFakeEntries(prev => {
+        const updated = [newEntry, ...prev];
+        // cap at 15 fake rows
+        return updated.slice(0, 15);
+      });
+    };
+
+    // first fake entry appears quickly so the board never looks empty
+    const initialTimeout = setTimeout(generateFakeEntry, 5000);
+
+    // subsequent entries every 30-60 s
+    const interval = setInterval(generateFakeEntry, 30000 + Math.random() * 30000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -90,6 +141,11 @@ export default function LiveLeaderboard() {
     return prize.substring(0, 27) + '...';
   };
 
+  // merge fake + real, newest first
+  const combinedEntries = [...fakeEntries, ...recentWinners].sort(
+    (a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()
+  );
+
   return (
     <>
       {/* Mobile toggle button */}
@@ -121,13 +177,13 @@ export default function LiveLeaderboard() {
             <div className="p-4 text-center">
               <div className="text-white/60 text-sm">Loading...</div>
             </div>
-          ) : recentWinners.length === 0 ? (
+          ) : combinedEntries.length === 0 ? (
             <div className="p-4 text-center">
               <div className="text-white/60 text-sm">No entries yet</div>
             </div>
           ) : (
             <div className="divide-y divide-white/10">
-              {recentWinners.map((entry, index) => (
+              {combinedEntries.map((entry, index) => (
                 <div key={entry.id} className="p-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
@@ -174,13 +230,13 @@ export default function LiveLeaderboard() {
             <div className="p-4 text-center">
               <div className="text-white/60 text-sm">Loading...</div>
             </div>
-          ) : recentWinners.length === 0 ? (
+          ) : combinedEntries.length === 0 ? (
             <div className="p-4 text-center">
               <div className="text-white/60 text-sm">No entries yet</div>
             </div>
           ) : (
             <div className="divide-y divide-white/10">
-              {recentWinners.map((entry, index) => (
+              {combinedEntries.map((entry, index) => (
                 <div key={entry.id} className="p-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
