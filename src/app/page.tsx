@@ -874,14 +874,11 @@ export default function Home() {
                     <h2 className="text-2xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
                       CONGRATULATIONS!
                     </h2>
-                                              <p className="text-gray-300 mb-2">
-                            You&apos;ve been entered into our draw for:
-                          </p>
                     <p className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
-                      {selectedPrize?.name}
+                      YOU'VE JUST WON AED 250!
                     </p>
-                    <p className="text-sm text-gray-300 mb-6">
-                      Winners will be announced on the 1st of August 2025.
+                    <p className="text-gray-300 mb-6">
+                      More details will be shared soon. Thank you for participating!
                     </p>
                   </div>
                 </div>
