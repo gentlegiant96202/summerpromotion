@@ -30,6 +30,7 @@ export default function Home() {
   const [showCongratulations, setShowCongratulations] = useState(false);
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const prizes = [
     { id: 1, name: '4 YEARS PREMIUM SERVICECARE', color: '#D85050', probability: 0.25 },
@@ -233,30 +234,30 @@ export default function Home() {
       playWinSound();
       
       // Show confetti
-      // setShowConfetti(true); // This state variable was removed
+      setShowConfetti(true);
       
       // Show congratulations modal
       setShowCongratulations(true);
       
       // Hide confetti after 5 seconds
       setTimeout(() => {
-        // setShowConfetti(false); // This state variable was removed
+        setShowConfetti(false);
       }, 5000);
     } catch (error) {
       console.error('Failed to save entry:', error);
       // Still show the congratulations even if database save fails
       playWinSound();
-      // setShowConfetti(true); // This state variable was removed
+      setShowConfetti(true);
       setShowCongratulations(true);
       setTimeout(() => {
-        // setShowConfetti(false); // This state variable was removed
+        setShowConfetti(false);
       }, 5000);
     }
   };
 
   // Confetti effect
   useEffect(() => {
-    // if (showConfetti) { // This state variable was removed
+    if (showConfetti) {
       const confetti = () => {
         const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
         
@@ -277,15 +278,17 @@ export default function Home() {
             document.body.appendChild(confettiPiece);
             
             setTimeout(() => {
-              document.body.removeChild(confettiPiece);
+              if (document.body.contains(confettiPiece)) {
+                document.body.removeChild(confettiPiece);
+              }
             }, 5000);
           }, i * 20);
         }
       };
       
       confetti();
-    // } // This state variable was removed
-  }, []); // This state variable was removed
+    }
+  }, [showConfetti]);
 
   return (
     <>
@@ -479,41 +482,7 @@ export default function Home() {
         }
       `}</style>
 
-        {/* Golden Particles Animation */}
-        {/* showGoldenParticles && ( // This state variable was removed */}
-          <div className="golden-particles">
-            {Array.from({ length: 50 }).map((_, i) => (
-              <div
-                key={i}
-                className="golden-particle"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 2}s`,
-                  animationDuration: `${2 + Math.random() * 2}s`
-                }}
-              />
-            ))}
-          </div>
-        {/* ) // This state variable was removed */}
-
-        {/* Confetti Animation */}
-        {/* showConfetti && ( // This state variable was removed */}
-          <div className="confetti-container">
-            {Array.from({ length: 50 }).map((_, i) => (
-              <div
-                key={i}
-                className="confetti-piece"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'][Math.floor(Math.random() * 7)]
-                }}
-              />
-            ))}
-          </div>
-        {/* ) // This state variable was removed */}
-
-                <main className="bg-black pt-4 pb-8">
+        <main className="bg-black pt-4 pb-8">
           {/* Mobile Logo - Only visible on mobile */}
           <div className="block lg:hidden w-full px-3 py-2 text-center">
             <Image src="/asset-2.png" alt="Logo" width={56} height={56} className="mx-auto rounded-lg" />
@@ -682,67 +651,93 @@ export default function Home() {
               ) : (
                 /* After Form Submission - Show Spinning Wheel and Leaderboard */
                 <div className="w-full max-w-7xl mx-auto relative z-10 transition-all duration-1000 ease-out">
-                  <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center lg:items-start">
-                    {/* Spinning Wheel */}
-                    <div className="flex-1 flex justify-center">
-                      <SpinningWheel
-                        prizes={prizes}
-                        isSpinning={isSpinning}
-                        onSpinComplete={handleSpinComplete}
-                        onSpinStart={handleSpinStart}
-                        disabled={false} // hasWon state was removed
-                      />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+                    {/* Spinning Wheel Section - Takes up 2/3 of the width on desktop */}
+                    <div className="lg:col-span-2 flex flex-col items-center space-y-6">
+                      {/* Title Section */}
+                      <div className="text-center space-y-3">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
+                          SPIN THE WHEEL!
+                        </h1>
+                        <p className="text-lg sm:text-xl text-gray-200 font-medium">
+                          Good luck, {submittedFormData.name}!
+                        </p>
+                      </div>
+                      
+                      {/* Spinning Wheel */}
+                      <div className="flex justify-center">
+                        <SpinningWheel
+                          prizes={prizes}
+                          isSpinning={isSpinning}
+                          onSpinComplete={handleSpinComplete}
+                          onSpinStart={handleSpinStart}
+                          disabled={false}
+                        />
+                      </div>
+                      
+                      {/* Instructions */}
+                      <div className="text-center max-w-md">
+                        <p className="text-gray-300 text-sm">
+                          Click the wheel to spin and discover your prize!
+                        </p>
+                      </div>
                     </div>
                     
-                    {/* Leaderboard - Bottom on mobile, Right on desktop */}
-                    <div className="w-full lg:w-80 lg:flex-shrink-0">
-                      <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
-                        <h3 className="text-lg sm:text-xl font-bold text-white mb-4 text-center">
-                          🏆 Live Leaderboard
-                        </h3>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {recentWinners.length > 0 ? (
-                            recentWinners.map((entry, index) => (
-                              <div key={entry.id} className="bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="font-semibold text-white text-sm">
-                                      {entry.name}
+                    {/* Leaderboard Section - Takes up 1/3 of the width on desktop */}
+                    <div className="lg:col-span-1">
+                      <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 sticky top-4">
+                        <div className="bg-white/20 px-4 py-3 border-b border-white/10 rounded-t-lg mb-4">
+                          <h2 className="text-white font-bold text-lg flex items-center justify-center" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
+                            <span className="mr-2">🏆</span>
+                            LIVE LEADERBOARD
+                            <div className="ml-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          </h2>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          {isLoadingWinners ? (
+                            <div className="p-3 text-center">
+                              <div className="text-white/60 text-sm">Loading...</div>
+                            </div>
+                          ) : recentWinners.length === 0 ? (
+                            <div className="p-3 text-center">
+                              <div className="text-white/60 text-sm">No entries yet</div>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
+                              {recentWinners.map((entry, index) => (
+                                <div key={entry.id} className="p-2 hover:bg-white/5 transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                        index === 0 ? 'bg-white/30 text-white' :
+                                        index === 1 ? 'bg-white/25 text-white' :
+                                        index === 2 ? 'bg-white/20 text-white' :
+                                        'bg-white/20 text-white'
+                                      }`}>
+                                        {index + 1}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-white font-medium text-xs truncate">
+                                          {entry.name}
+                                        </div>
+                                        <div className="text-white/70 text-xs truncate">
+                                          {truncatePrize(entry.selected_prize)}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="text-xs text-gray-300">
-                                      {entry.selected_prize}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-xs text-gray-400">
-                                      {new Date(entry.entry_date).toLocaleDateString()}
-                                    </div>
-                                    <div className="text-xs text-white">
-                                      #{index + 1}
+                                    <div className="text-white/50 text-xs ml-2">
+                                      {formatDate(entry.entry_date)}
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-center text-gray-400 py-8">
-                              <p>No winners yet!</p>
-                              <p className="text-sm mt-1">Be the first to spin!</p>
+                              ))}
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Already Won Message */}
-                  {/* hasWon && ( // This state variable was removed */}
-                    <div className="mt-6 text-center">
-                                              <p className="text-white font-semibold">
-                          🎉 You&apos;ve already won! Check the leaderboard to see your entry.
-                        </p>
-                    </div>
-                  {/* ) // This state variable was removed */}
                 </div>
               )}
             </div>
