@@ -33,7 +33,6 @@ export default function Home() {
 
   const [showWheel, setShowWheel] = useState(false);
   const [showCongratulations, setShowCongratulations] = useState(false);
-  const [wonPrize, setWonPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
   const [currentPrize, setCurrentPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
@@ -309,7 +308,6 @@ export default function Home() {
 
   const handleSpinComplete = async (prize: { id: number; name: string; color: string; probability: number }) => {
     setHasSpun(true);
-    setWonPrize(prize);
     
     // Add haptic feedback for mobile
     if ('vibrate' in navigator) {
