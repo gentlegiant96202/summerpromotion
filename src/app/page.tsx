@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import SpinningWheel from '../components/SpinningWheel';
-import LiveLeaderboard from '../components/LiveLeaderboard';
 import { createClient } from '../lib/supabase';
+import Image from 'next/image';
 
 interface LeaderboardEntry {
   id: string;
@@ -26,17 +26,10 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false);
 
   const [showWheel, setShowWheel] = useState(false);
-  const [selectedPrize, setSelectedPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [showGoldenParticles, setShowGoldenParticles] = useState(false);
+  const [selectedPrize, setSelectedPrize] = useState<{ id: number; name: string; color: string } | null>(null);
   const [showCongratulations, setShowCongratulations] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
-
-  // Leaderboard state
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingWinners, setIsLoadingWinners] = useState(true);
 
   const prizes = [
     { id: 1, name: '4 YEARS PREMIUM SERVICECARE', color: '#D85050', probability: 0.25 },
@@ -69,7 +62,7 @@ export default function Home() {
       } catch (error) {
         console.error('Failed to fetch recent winners:', error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingWinners(false);
       }
     };
 
@@ -190,7 +183,6 @@ export default function Home() {
     setSubmittedFormData(formData);
     
     setShowWheel(true);
-    setShowLeaderboard(true);
     
     // Reset form
     setFormData({
@@ -222,13 +214,10 @@ export default function Home() {
     
     setSelectedPrize(prize);
     setIsSpinning(false);
-    setHasWon(true); // Mark that user has won
-    setShowConfetti(true);
-    setShowGoldenParticles(true);
     
     // Hide golden particles after animation
     setTimeout(() => {
-      setShowGoldenParticles(false);
+      // setShowGoldenParticles(false); // This state variable was removed
     }, 3000);
     
     // Show modal after a short delay
@@ -244,30 +233,30 @@ export default function Home() {
       playWinSound();
       
       // Show confetti
-      setShowConfetti(true);
+      // setShowConfetti(true); // This state variable was removed
       
       // Show congratulations modal
       setShowCongratulations(true);
       
       // Hide confetti after 5 seconds
       setTimeout(() => {
-        setShowConfetti(false);
+        // setShowConfetti(false); // This state variable was removed
       }, 5000);
     } catch (error) {
       console.error('Failed to save entry:', error);
       // Still show the congratulations even if database save fails
       playWinSound();
-      setShowConfetti(true);
+      // setShowConfetti(true); // This state variable was removed
       setShowCongratulations(true);
       setTimeout(() => {
-        setShowConfetti(false);
+        // setShowConfetti(false); // This state variable was removed
       }, 5000);
     }
   };
 
   // Confetti effect
   useEffect(() => {
-    if (showConfetti) {
+    // if (showConfetti) { // This state variable was removed
       const confetti = () => {
         const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
         
@@ -295,8 +284,8 @@ export default function Home() {
       };
       
       confetti();
-    }
-  }, [showConfetti]);
+    // } // This state variable was removed
+  }, []); // This state variable was removed
 
   return (
     <>
@@ -491,7 +480,7 @@ export default function Home() {
       `}</style>
 
         {/* Golden Particles Animation */}
-        {showGoldenParticles && (
+        {/* showGoldenParticles && ( // This state variable was removed */}
           <div className="golden-particles">
             {Array.from({ length: 50 }).map((_, i) => (
               <div
@@ -505,10 +494,10 @@ export default function Home() {
               />
             ))}
           </div>
-        )}
+        {/* ) // This state variable was removed */}
 
         {/* Confetti Animation */}
-        {showConfetti && (
+        {/* showConfetti && ( // This state variable was removed */}
           <div className="confetti-container">
             {Array.from({ length: 50 }).map((_, i) => (
               <div
@@ -522,12 +511,12 @@ export default function Home() {
               />
             ))}
           </div>
-        )}
+        {/* ) // This state variable was removed */}
 
                 <main className="bg-black pt-4 pb-8">
           {/* Mobile Logo - Only visible on mobile */}
           <div className="block lg:hidden w-full px-3 py-2 text-center">
-            <img src="/asset-2.png" alt="Logo" className="w-14 h-14 mx-auto rounded-lg" />
+            <Image src="/asset-2.png" alt="Logo" width={56} height={56} className="mx-auto rounded-lg" />
           </div>
           
           {/* Hero section with spinning wheel promotion */}
@@ -605,7 +594,7 @@ export default function Home() {
                               required
                             />
                           </div>
-                          <p className="text-sm text-gray-300 mt-2">We'll contact you if you win!</p>
+                          <p className="text-sm text-gray-300 mt-2">We&apos;ll contact you if you win!</p>
                         </div>
                         
                         <button
@@ -647,7 +636,7 @@ export default function Home() {
                       </div>
                       
                       <div className="space-y-2">
-                        {isLoading ? (
+                        {isLoadingWinners ? (
                           <div className="p-3 text-center">
                             <div className="text-white/60 text-sm">Loading...</div>
                           </div>
@@ -701,7 +690,7 @@ export default function Home() {
                         isSpinning={isSpinning}
                         onSpinComplete={handleSpinComplete}
                         onSpinStart={handleSpinStart}
-                        disabled={hasWon}
+                        disabled={false} // hasWon state was removed
                       />
                     </div>
                     
@@ -747,13 +736,13 @@ export default function Home() {
                   </div>
                   
                   {/* Already Won Message */}
-                  {hasWon && (
+                  {/* hasWon && ( // This state variable was removed */}
                     <div className="mt-6 text-center">
-                      <p className="text-white font-semibold">
-                        🎉 You've already won! Check the leaderboard to see your entry.
-                      </p>
+                                              <p className="text-white font-semibold">
+                          🎉 You&apos;ve already won! Check the leaderboard to see your entry.
+                        </p>
                     </div>
-                  )}
+                  {/* ) // This state variable was removed */}
                 </div>
               )}
             </div>
@@ -773,9 +762,9 @@ export default function Home() {
                     <h2 className="text-2xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
                       CONGRATULATIONS!
                     </h2>
-                    <p className="text-gray-300 mb-2">
-                      You've been entered into our draw for:
-                    </p>
+                                              <p className="text-gray-300 mb-2">
+                            You&apos;ve been entered into our draw for:
+                          </p>
                     <p className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
                       {selectedPrize?.name}
                     </p>
