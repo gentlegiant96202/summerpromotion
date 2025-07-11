@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import SpinningWheel from '../components/SpinningWheel';
+import SpinningWheel from '@/components/SpinningWheel';
 import { createClient } from '../lib/supabase';
 import Image from 'next/image';
 
@@ -34,6 +34,7 @@ export default function Home() {
   const [showWheel, setShowWheel] = useState(false);
   const [showCongratulations, setShowCongratulations] = useState(false);
   const [wonPrize, setWonPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
+  const [currentPrize, setCurrentPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -101,7 +102,6 @@ export default function Home() {
 
     const fetchRecentWinners = async () => {
       try {
-        console.log('Fetching recent winners...');
         const { data, error } = await supabase
           .from('wheel_entries')
           .select('id, name, selected_prize, entry_date')
@@ -113,7 +113,6 @@ export default function Home() {
           return;
         }
 
-        console.log('Fetched data:', data);
         setRecentWinners(data || []);
       } catch (error) {
         console.error('Failed to fetch recent winners:', error);
@@ -206,7 +205,6 @@ export default function Home() {
         throw error;
       }
 
-      console.log('Entry saved successfully');
     } catch (error) {
       console.error('Failed to save entry:', error);
       throw error;
@@ -265,20 +263,15 @@ export default function Home() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-
     const fullMobile = formData.countryCode + formData.mobile;
     const supabase = createClient();
 
     try {
       // Check for existing mobile number
-      console.log('Checking for mobile:', fullMobile);
       const { data: existingEntries, error: dupError } = await supabase
         .from('wheel_entries')
         .select('*')
         .eq('mobile', fullMobile);
-
-      console.log('Query result:', { existingEntries, dupError });
 
       if (dupError) {
         console.error('Duplicate check failed:', dupError);
@@ -287,13 +280,10 @@ export default function Home() {
       }
 
       if (existingEntries && existingEntries.length > 0) {
-        console.log('Duplicate found:', existingEntries);
         setDuplicateError('You have already entered and won a Prepaid Gift Card. Thank you!');
         return;
       }
 
-      console.log('No duplicate found, proceeding...');
-      // No duplicate – proceed
       setDuplicateError(null);
       setSubmittedFormData(formData);
       setShowWheel(true);
@@ -307,7 +297,6 @@ export default function Home() {
   };
 
   const handleSpinStart = () => {
-    console.log('Spin started');
     
     // Add haptic feedback for mobile when starting spin
     if ('vibrate' in navigator) {
@@ -319,7 +308,6 @@ export default function Home() {
   };
 
   const handleSpinComplete = async (prize: { id: number; name: string; color: string; probability: number }) => {
-    console.log('Spin complete, prize:', prize);
     setHasSpun(true);
     setWonPrize(prize);
     
@@ -348,7 +336,8 @@ export default function Home() {
       // Show confetti
       setShowConfetti(true);
       
-      // Show congratulations modal
+      // Set current prize and show congratulations modal
+      setCurrentPrize(prize);
       setShowCongratulations(true);
       
       // Hide confetti after 5 seconds
@@ -358,6 +347,7 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to save entry:', error);
       // Still show the congratulations even if database save fails
+      setCurrentPrize(prize);
       playWinSound();
       setShowConfetti(true);
       setShowCongratulations(true);
@@ -780,7 +770,7 @@ export default function Home() {
                         <p className="text-lg sm:text-xl text-gray-200 font-medium">
                           Good luck, {submittedFormData.name}!
                         </p>
-                      </div>
+        </div>
                       
                       {/* Spinning Wheel */}
                       <div className="flex justify-center">
@@ -876,16 +866,16 @@ export default function Home() {
                       CONGRATULATIONS!
                     </h2>
                     <p className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
-                      YOU&apos;VE JUST WON {wonPrize?.name || 'AED 250'}!
+                      YOU&apos;VE JUST WON {currentPrize ? currentPrize.name : 'AED 250'}!
                     </p>
                     <p className="text-gray-300 mb-6">
                       More details will be shared soon. Thank you for participating!
                     </p>
                   </div>
                 </div>
-              </div>
+    </div>
             )}
           </main>
         </>
-      );
-    }
+  );
+}
