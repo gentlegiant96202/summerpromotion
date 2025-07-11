@@ -33,6 +33,7 @@ export default function Home() {
 
   const [showWheel, setShowWheel] = useState(false);
   const [showCongratulations, setShowCongratulations] = useState(false);
+  const [wonPrize, setWonPrize] = useState<{ id: number; name: string; color: string; probability: number } | null>(null);
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -51,6 +52,7 @@ export default function Home() {
     'RAHUL SHARMA', 'PRIYA PATEL', 'ARJUN SINGH', 'ANITA KUMAR', 'VIKRAM DAS',
   ];
   const FAKE_PRIZES = [
+    'AED 250 PREPAID GIFT CARD',
     'AED 500 PREPAID GIFT CARD',
     'AED 750 PREPAID GIFT CARD',
     'AED 1000 PREPAID GIFT CARD',
@@ -89,8 +91,8 @@ export default function Home() {
   const prizes = [
     { id: 1, name: 'AED 1000 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
     { id: 2, name: 'AED 750 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
-    { id: 3, name: 'AED 500 PREPAID GIFT CARD', color: '#D85050', probability: 0 },
-    { id: 4, name: 'AED 250 PREPAID GIFT CARD', color: '#D85050', probability: 1 }
+    { id: 3, name: 'AED 500 PREPAID GIFT CARD', color: '#D85050', probability: 0.3 },
+    { id: 4, name: 'AED 250 PREPAID GIFT CARD', color: '#D85050', probability: 0.7 }
   ];
 
   // Fetch leaderboard data
@@ -319,6 +321,7 @@ export default function Home() {
   const handleSpinComplete = async (prize: { id: number; name: string; color: string; probability: number }) => {
     console.log('Spin complete, prize:', prize);
     setHasSpun(true);
+    setWonPrize(prize);
     
     // Add haptic feedback for mobile
     if ('vibrate' in navigator) {
@@ -873,7 +876,7 @@ export default function Home() {
                       CONGRATULATIONS!
                     </h2>
                     <p className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
-                      YOU&apos;VE JUST WON AED 250!
+                      YOU&apos;VE JUST WON {wonPrize?.name || 'AED 250'}!
                     </p>
                     <p className="text-gray-300 mb-6">
                       More details will be shared soon. Thank you for participating!

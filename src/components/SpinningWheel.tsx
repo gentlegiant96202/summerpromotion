@@ -101,10 +101,20 @@ export default function SpinningWheel({
     onSpinStart();
 
     /**************************************************************************
-     * 1. Pick the target slice                                                *
-     *    The business rule is to ALWAYS land on the FIRST AED 250 slice      *
+     * 1. Pick the target slice based on probabilities                         *
+     *    70% chance for AED 250, 30% chance for AED 500                     *
      **************************************************************************/
-    const targetSlice = 2; // Slightly further 250 slice so pointer sits deeper inside
+    const random = Math.random(); // 0-1
+    let targetSlice: number;
+    
+    if (random < 0.7) {
+      // 70% chance: Land on AED 250 (slice 1, 2, 4, 5, 6, 8, 9)
+      const aed250Slices = [1, 2, 4, 5, 6, 8, 9];
+      targetSlice = aed250Slices[Math.floor(Math.random() * aed250Slices.length)];
+    } else {
+      // 30% chance: Land on AED 500 (slice 7)
+      targetSlice = 7;
+    }
 
     // How far do we need to rotate from current orientation?                 
     const currentOrientation = angle % 360; // 0-359
