@@ -32,7 +32,6 @@ export default function Home() {
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   const [showWheel, setShowWheel] = useState(false);
-  const [selectedPrize, setSelectedPrize] = useState<{ id: number; name: string; color: string } | null>(null);
   const [showCongratulations, setShowCongratulations] = useState(false);
   const [recentWinners, setRecentWinners] = useState<LeaderboardEntry[]>([]);
   const [isLoadingWinners, setIsLoadingWinners] = useState(true);
@@ -81,7 +80,7 @@ export default function Home() {
       clearTimeout(first);
       clearInterval(interval);
     };
-  }, []);
+  }, [FAKE_NAMES, FAKE_PRIZES]);
 
   const combinedEntries = [...fakeEntries, ...recentWinners].sort(
     (a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()
@@ -326,7 +325,6 @@ export default function Home() {
       navigator.vibrate([200, 100, 200]);
     }
     
-    setSelectedPrize(prize);
     setIsSpinning(false);
     
     try {
@@ -875,7 +873,7 @@ export default function Home() {
                       CONGRATULATIONS!
                     </h2>
                     <p className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Impact, sans-serif', fontWeight: 'normal' }}>
-                      YOU'VE JUST WON AED 250!
+                      YOU&apos;VE JUST WON AED 250!
                     </p>
                     <p className="text-gray-300 mb-6">
                       More details will be shared soon. Thank you for participating!
