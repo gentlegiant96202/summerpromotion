@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 
 // --- Interfaces ---
 interface Prize {
@@ -18,31 +18,36 @@ interface SpinningWheelProps {
   disabled?: boolean;
 }
 
+// --- Ref Handle ---
+export interface SpinningWheelRef {
+  doSpin: () => void;
+}
+
 // --- Configuration ---
 const SLICE_COUNT = 10;
 const SLICE_DEGREE = 360 / SLICE_COUNT;
 
 const wheelPrizes = [
-  { prizeId: 1, label: ["AED 1000", "PREPAID", "GIFT CARD"] }, // Slice 0
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 1
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 2
-  { prizeId: 3, label: ["AED 500", "PREPAID", "GIFT CARD"] },  // Slice 3
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 4
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 5
-  { prizeId: 2, label: ["AED 750", "PREPAID", "GIFT CARD"] },  // Slice 6
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 7
-  { prizeId: 3, label: ["AED 500", "PREPAID", "GIFT CARD"] },  // Slice 8
-  { prizeId: 4, label: ["AED 250", "PREPAID", "GIFT CARD"] },  // Slice 9
+  { prizeId: 1, label: ["AED 1000", "GIFT CARD"] }, // Slice 0
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 1
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 2
+  { prizeId: 3, label: ["AED 500", "GIFT CARD"] },  // Slice 3
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 4
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 5
+  { prizeId: 2, label: ["AED 750", "GIFT CARD"] },  // Slice 6
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 7
+  { prizeId: 3, label: ["AED 500", "GIFT CARD"] },  // Slice 8
+  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 9
 ];
 
 // --- Component ---
-export default function SpinningWheel({
+const SpinningWheel = forwardRef<SpinningWheelRef, SpinningWheelProps>(({
   prizes,
   onSpinComplete,
   isSpinning,
   onSpinStart,
   disabled = false,
-}: SpinningWheelProps) {
+}, ref) => {
   const [rotation, setRotation] = useState(0);
   const wheelRef = useRef<HTMLDivElement>(null);
 
@@ -51,10 +56,11 @@ export default function SpinningWheel({
     return prizes.find(p => p.id === prizeInfo.prizeId)!;
   };
 
-  const spin = () => {
+  const handleSpin = () => {
     if (isSpinning || disabled) return;
 
-    onSpinStart();
+    // onSpinStart is now called by the button click directly
+    // onSpinStart();
 
     const random = Math.random();
     const targetPrizeId = random < 0.7 ? 4 : 3;
@@ -78,9 +84,31 @@ export default function SpinningWheel({
     }, 5000);
   };
 
+  useImperativeHandle(ref, () => ({
+    doSpin: handleSpin,
+  }));
+
   return (
     <>
       <style jsx>{`
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.1), 0 0 60px rgba(255, 255, 255, 0.05);
+          }
+          50% {
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(255, 255, 255, 0.2), 0 0 90px rgba(255, 255, 255, 0.1);
+          }
+        }
+        
+        @keyframes spin-button-pulse {
+          0%, 100% {
+            box-shadow: 0 0 15px rgba(255,255,255,0.4), 0 0 25px rgba(0,0,0,0.2);
+          }
+          50% {
+            box-shadow: 0 0 25px rgba(255,255,255,0.6), 0 0 35px rgba(255,255,255,0.3), 0 0 45px rgba(0,0,0,0.1);
+          }
+        }
+
         .wheel-container {
           position: relative;
           width: 500px;
@@ -88,6 +116,8 @@ export default function SpinningWheel({
           display: flex;
           justify-content: center;
           align-items: center;
+          animation: pulse-glow 3s ease-in-out infinite;
+          border-radius: 50%;
         }
         .pointer {
           position: absolute;
@@ -110,10 +140,10 @@ export default function SpinningWheel({
           overflow: hidden;
           transition: transform 5s cubic-bezier(0.1, 0.7, 0.3, 1);
           background: conic-gradient(
-            #e5e7eb 0deg 36deg, #f1f5f9 36deg 72deg, #e5e7eb 72deg 108deg,
-            #f1f5f9 108deg 144deg, #e5e7eb 144deg 180deg, #f1f5f9 180deg 216deg,
-            #e5e7eb 216deg 252deg, #f1f5f9 252deg 288deg, #e5e7eb 288deg 324deg,
-            #f1f5f9 324deg 360deg
+            #e5e7eb 0deg 36deg, #d1d5db 36deg 72deg, #e5e7eb 72deg 108deg,
+            #d1d5db 108deg 144deg, #e5e7eb 144deg 180deg, #d1d5db 180deg 216deg,
+            #e5e7eb 216deg 252deg, #d1d5db 252deg 288deg, #e5e7eb 288deg 324deg,
+            #d1d5db 324deg 360deg
           );
         }
         .slice-text {
@@ -142,7 +172,7 @@ export default function SpinningWheel({
             z-index: 10;
         }
          .spin-button {
-          background: white;
+          background: linear-gradient(145deg, #e5e5e5, #b8b8b8);
           color: #7c0c0c;
           border-radius: 50%;
           width: 100px;
@@ -150,8 +180,14 @@ export default function SpinningWheel({
           font-weight: 700;
           font-size: 24px;
           border: 8px solid #7c0c0c;
-          box-shadow: 0 0 15px rgba(0,0,0,0.2);
+          box-shadow: 0 0 15px rgba(255,255,255,0.4), 0 0 25px rgba(0,0,0,0.2);
           cursor: pointer;
+          animation: spin-button-pulse 2s ease-in-out infinite;
+          transition: all 0.3s ease;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
         }
         .spin-button:disabled {
             cursor: not-allowed;
@@ -190,7 +226,7 @@ export default function SpinningWheel({
         </div>
         <div className="spin-button-container">
            <button
-            onClick={spin}
+            onClick={onSpinStart}
             disabled={isSpinning || disabled}
             className="spin-button"
           >
@@ -200,4 +236,7 @@ export default function SpinningWheel({
       </div>
     </>
   );
-} 
+});
+
+SpinningWheel.displayName = 'SpinningWheel';
+export default SpinningWheel; 
