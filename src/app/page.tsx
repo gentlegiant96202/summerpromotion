@@ -340,6 +340,15 @@ export default function Home() {
       // Save to database
       await saveEntryToDatabase(prize);
       
+      // Add entry to local leaderboard immediately
+      const newEntry: LeaderboardEntry = {
+        id: 'real-' + Date.now(),
+        name: submittedFormData.name.toUpperCase(),
+        selected_prize: prize.name,
+        entry_date: new Date().toISOString()
+      };
+      setRecentWinners(prev => [newEntry, ...prev.slice(0, 9)]);
+      
       // Send webhook with winner data
       await sendWebhook({
         name: submittedFormData.name.toUpperCase(),
