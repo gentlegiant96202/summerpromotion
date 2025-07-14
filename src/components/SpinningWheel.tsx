@@ -28,16 +28,16 @@ const SLICE_COUNT = 10;
 const SLICE_DEGREE = 360 / SLICE_COUNT;
 
 const wheelPrizes = [
-  { prizeId: 1, label: ["AED 1000", "GIFT CARD"] }, // Slice 0
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 1
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 2
-  { prizeId: 3, label: ["AED 500", "GIFT CARD"] },  // Slice 3
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 4
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 5
-  { prizeId: 2, label: ["AED 750", "GIFT CARD"] },  // Slice 6
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 7
-  { prizeId: 3, label: ["AED 500", "GIFT CARD"] },  // Slice 8
-  { prizeId: 4, label: ["AED 250", "GIFT CARD"] },  // Slice 9
+  { prizeId: 1, label: ["1000 AED", "GIFT CARD"] }, // Slice 0
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 1
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 2
+  { prizeId: 3, label: ["500 AED", "GIFT CARD"] },  // Slice 3
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 4
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 5
+  { prizeId: 2, label: ["750 AED", "GIFT CARD"] },  // Slice 6
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 7
+  { prizeId: 3, label: ["500 AED", "GIFT CARD"] },  // Slice 8
+  { prizeId: 4, label: ["250 AED", "GIFT CARD"] },  // Slice 9
 ];
 
 // --- Component ---

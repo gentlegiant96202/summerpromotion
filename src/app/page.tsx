@@ -26,17 +26,17 @@ const FAKE_NAMES = [
     'RAHUL SHARMA', 'PRIYA PATEL', 'ARJUN SINGH', 'ANITA KUMAR', 'VIKRAM DAS',
 ];
 const FAKE_PRIZES = [
-    'AED 250 GIFT CARD',
-    'AED 500 GIFT CARD',
-    'AED 750 GIFT CARD',
-    'AED 1000 GIFT CARD',
+  '250 AED GIFT CARD',
+  '500 AED GIFT CARD',
+  '750 AED GIFT CARD',
+  '1000 AED GIFT CARD',
 ];
 
 const prizes = [
-    { id: 1, name: 'AED 1000 GIFT CARD', color: '#D85050', probability: 0 },
-    { id: 2, name: 'AED 750 GIFT CARD', color: '#D85050', probability: 0 },
-    { id: 3, name: 'AED 500 GIFT CARD', color: '#D85050', probability: 0.3 },
-    { id: 4, name: 'AED 250 GIFT CARD', color: '#D85050', probability: 0.7 }
+  { id: 1, name: '1000 AED GIFT CARD', color: '#D85050', probability: 0 },
+  { id: 2, name: '750 AED GIFT CARD', color: '#D85050', probability: 0 },
+  { id: 3, name: '500 AED GIFT CARD', color: '#D85050', probability: 0.3 },
+  { id: 4, name: '250 AED GIFT CARD', color: '#D85050', probability: 0.7 }
 ];
 
 export default function Home() {
