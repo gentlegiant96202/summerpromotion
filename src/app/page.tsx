@@ -53,6 +53,13 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [hasSpun, setHasSpun] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  
+  // Use ref to store form data reliably for webhook
+  const submittedFormDataRef = useRef({
+    name: '',
+    mobile: '',
+    countryCode: '+971'
+  });
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [showCongratulations, setShowCongratulations] = useState(false);
@@ -237,21 +244,27 @@ export default function Home() {
       // Bothook.io webhook endpoint
       const webhookUrl = 'https://bothook.io/v1/public/triggers/webhooks/ad29e7ad-96a8-4710-83cc-6c2a3ec49564';
       
+      const webhookPayload = {
+        event: 'wheel_winner',
+        data: {
+          name: winnerData.name,
+          mobile: winnerData.mobile,
+          prize: winnerData.prize,
+          entry_date: winnerData.entryDate,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      // Debug: Log what we're sending to the webhook
+      console.log('Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
+      console.log('Mobile number being sent:', winnerData.mobile);
+      
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          event: 'wheel_winner',
-          data: {
-            name: winnerData.name,
-            mobile: winnerData.mobile,
-            prize: winnerData.prize,
-            entry_date: winnerData.entryDate,
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(webhookPayload)
       });
 
       if (!response.ok) {
@@ -279,6 +292,13 @@ export default function Home() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent multiple submissions
+    if (isSpinning) {
+      console.log('Form submission blocked - already spinning');
+      return;
+    }
+    
     const fullMobile = formData.countryCode + formData.mobile;
     const supabase = createClient();
 
@@ -301,18 +321,38 @@ export default function Home() {
       }
 
       setDuplicateError(null);
-      setSubmittedFormData(formData);
+      
+      // Store the form data before resetting - use both state and ref
+      const formDataToSubmit = { ...formData };
+      setSubmittedFormData(formDataToSubmit);
+      submittedFormDataRef.current = formDataToSubmit;
+      
+      console.log('Form submitted with data:', formDataToSubmit);
+      console.log('Full mobile from form:', fullMobile);
+      console.log('Stored in ref:', submittedFormDataRef.current);
+      
+      // Close modal first
       setShowFormModal(false);
 
-      // Add haptic feedback for mobile when starting spin
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100);
-      }
-      
-      setIsSpinning(true);
-      playSpinSound();
-      
-      wheelRef.current?.doSpin();
+      // Small delay to ensure modal closes before starting spin
+      setTimeout(() => {
+        // Add haptic feedback for mobile when starting spin
+        if ('vibrate' in navigator) {
+          navigator.vibrate(100);
+        }
+        
+        playSpinSound();
+        
+        // Ensure wheel ref exists before calling doSpin
+        if (wheelRef.current) {
+          console.log('Calling doSpin...');
+          setIsSpinning(true);
+          wheelRef.current.doSpin();
+        } else {
+          console.error('wheelRef.current is null');
+          setIsSpinning(false);
+        }
+      }, 100);
 
       // Reset form
       setFormData({ name: '', mobile: '', countryCode: '+971' });
@@ -341,18 +381,27 @@ export default function Home() {
       await saveEntryToDatabase(prize);
       
       // Add entry to local leaderboard immediately
+      const formDataFromRef = submittedFormDataRef.current;
       const newEntry: LeaderboardEntry = {
         id: 'real-' + Date.now(),
-        name: submittedFormData.name.toUpperCase(),
+        name: formDataFromRef.name.toUpperCase(),
         selected_prize: prize.name,
         entry_date: new Date().toISOString()
       };
       setRecentWinners(prev => [newEntry, ...prev.slice(0, 9)]);
       
-      // Send webhook with winner data
+      // Send webhook with winner data - use ref for reliable data
+      const fullMobileForWebhook = formDataFromRef.countryCode + formDataFromRef.mobile;
+      console.log('Debug webhook call:');
+      console.log('submittedFormData state:', submittedFormData);
+      console.log('submittedFormDataRef.current:', formDataFromRef);
+      console.log('Country code from ref:', formDataFromRef.countryCode);
+      console.log('Mobile number from ref:', formDataFromRef.mobile);
+      console.log('Full mobile for webhook:', fullMobileForWebhook);
+      
       await sendWebhook({
-        name: submittedFormData.name.toUpperCase(),
-        mobile: submittedFormData.countryCode + submittedFormData.mobile,
+        name: formDataFromRef.name.toUpperCase(),
+        mobile: fullMobileForWebhook,
         prize: prize.name,
         entryDate: new Date().toISOString()
       });
@@ -922,14 +971,14 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={isSpinning}
-                      className="w-full bg-gradient-to-r from-white to-gray-200 text-black font-light py-5 px-8 rounded-2xl transition-all duration-500 transform hover:scale-[1.01] hover:shadow-2xl hover:from-gray-100 hover:to-gray-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-xl relative overflow-hidden tracking-wide"
+                      className="group w-full bg-gradient-to-r from-white to-gray-200 text-black font-light py-5 px-8 rounded-2xl transition-shadow duration-300 hover:shadow-2xl hover:from-gray-100 hover:to-gray-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-xl relative overflow-hidden tracking-wide"
                       style={{ fontFamily: 'Impact, sans-serif' }}
                     >
                       <span className="relative z-10">
                         {isSpinning ? 'SPINNING...' : 'SPIN TO WIN'}
                       </span>
                       {!isSpinning && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full hover:translate-x-full transition-transform duration-1000"></div>
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                       )}
                     </button>
                 </form>

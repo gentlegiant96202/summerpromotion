@@ -57,11 +57,14 @@ const SpinningWheel = forwardRef<SpinningWheelRef, SpinningWheelProps>(({
   };
 
   const handleSpin = () => {
-    if (isSpinning || disabled) return;
+    // Only check disabled, not isSpinning since parent controls that
+    if (disabled) return;
 
-    // onSpinStart is now called by the button click directly
-    // onSpinStart();
+    console.log('Wheel handleSpin called, isSpinning:', isSpinning, 'disabled:', disabled);
 
+    // This function is called via ref from form submission
+    // The wheel spinning logic only - form modal already handled
+    
     const random = Math.random();
     const targetPrizeId = random < 0.7 ? 4 : 3;
 
@@ -76,10 +79,12 @@ const SpinningWheel = forwardRef<SpinningWheelRef, SpinningWheelProps>(({
     
     const newRotation = rotation + randomRotations + targetRotation - (rotation % 360);
     
+    console.log('Starting wheel spin, new rotation:', newRotation);
     setRotation(newRotation);
 
     setTimeout(() => {
         const finalPrize = getPrizeBySliceIndex(targetSliceIndex);
+        console.log('Wheel spin complete, final prize:', finalPrize);
         onSpinComplete(finalPrize);
     }, 5000);
   };
@@ -183,7 +188,8 @@ const SpinningWheel = forwardRef<SpinningWheelRef, SpinningWheelProps>(({
           box-shadow: 0 0 15px rgba(255,255,255,0.4), 0 0 25px rgba(0,0,0,0.2);
           cursor: pointer;
           animation: spin-button-pulse 2s ease-in-out infinite;
-          transition: all 0.3s ease;
+          /* Restrict transition to box-shadow only to avoid size/transform glitches */
+          transition: box-shadow 0.3s ease;
           position: absolute;
           top: 50%;
           left: 50%;
