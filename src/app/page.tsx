@@ -820,7 +820,7 @@ export default function Home() {
         </div>
         
         {/* Hero section with spinning wheel promotion */}
-         <div className="w-full px-3 sm:px-6 lg:px-8 py-1 sm:py-4 relative flex items-center justify-center min-h-screen">
+         <div className="w-full px-3 sm:px-6 lg:px-8 py-6 sm:py-4 relative flex items-center justify-center md:min-h-screen">
           <div className="w-full max-w-7xl mx-auto relative z-10 transition-all duration-1000 ease-out">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center">
               
@@ -830,8 +830,8 @@ export default function Home() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-white drop-shadow-lg" style={{ fontFamily: 'Impact, sans-serif' }}>
                     SPIN TO WIN!
                   </h1>
-                  <p className="text-base sm:text-lg lg:text-xl text-gray-300 font-normal">
-                    Click the wheel to enter and win amazing prizes!
+                  <p className="text-base sm:text-lg lg:text-xl text-gray-300 font-light">
+                    Give it a spin—your prize awaits!
                   </p>
                 </div>
                 
